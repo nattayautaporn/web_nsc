@@ -1,0 +1,228 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<title>Vector field</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.0/dist/leaflet.css" />
+	<link rel="stylesheet" href="leaflet-search.css" />
+	<link rel="stylesheet" href="style.css" />
+
+
+
+</head>
+
+<body>
+	<div style="background-color:#f1f1f1;padding:10px;">
+		<h1><b>Vector Field and Flood Flow Map</b></h1>
+		<br>
+	</div><br>
+	<div id="test">
+		<div id="map"></div>
+	</div>
+
+
+
+
+	<div id="post-it">
+		<b>Search values:</b><br />
+		ม.อ.ภูเก็ต<br>
+		Central Floresta<br>
+		วัดกะทู้ <br>
+		เขื่อนบางวาด<br>
+		โลตัลภูเก็ต<br>
+		โรงเรียนกะทู้วิทยา<br>
+		น้ำตกกะทู้<br>
+		ศูนย์อนุรักษ์มรดกกะทู้
+	</div>
+
+	<div id="right-panel">
+		<div>
+			<div class="slidecontainer">
+				<b><br>ความเเรงของน้ำ: </b> <br><br>
+				<input type="range" min="1" max="100" value="20" class="slider2" id="myRange2">
+				<p>ปริมาณน้ำฝน: <span id="demo2"> </span> มม./นาที</p><br>
+			</div>
+
+
+
+			<script>
+				var slider2 = document.getElementById("myRange2");
+				var output2 = document.getElementById("demo2");
+				output2.innerHTML = slider2.value;
+
+				slider2.oninput = function () {
+					output2.innerHTML = this.value;
+				}
+			</script>
+
+			<!--------------------------------ส่วนที่เกี่ยวข้องกับ algo------------------------------------------------ -->
+
+
+			<b>กดปุ่มนี้ก่อนเรื่มใช้งาน </b> <br><br>
+			<button onclick="fetchh()" class="button button1">FETCH</button> <br>
+
+			<b><br>ปุ่มควบคุม </b> <br><br>
+			<button onclick="func4(0)" class="button button2">PLAY</button>
+			<button onclick="clearTimeout(timeout)" class="button button3">STOP</button>
+			<button onclick="func5() " class="button button4">REVERSE</button><br><br>
+
+
+			<!-- <a href="manual.html"><img src="preview.png" tarket="_blank" height="30%" width="15%"></a> -->
+			<a href="manual.html">คู่มือการใช้งานระบบ</a>
+
+
+			<script>
+				let timeout
+				let change = []
+				let screen = [
+					[51.2, 49, 46.6, 44.1, 41.6, 39.5, 38.2, 37, 35.7, 34.8, 33.5, 32.6, 31.9, 31.2, 30.4, 30.1, 29.7, 29.3, 29.2, 29.1],
+					[51.8, 49.4, 47.1, 44.7, 42.4, 40.1, 38.8, 37.8, 36.7, 35.8, 34.9, 33.6, 32.8, 31.9, 31.1, 30.5, 30.1, 29.5, 29.3, 29.2],
+					[51.3, 48.8, 46.3, 44.1, 42, 39.8, 38.8, 37.9, 37.1, 36.3, 35.5, 34.3, 33.3, 32.3, 31.3, 30.7, 30.4, 30, 29.7, 29.5],
+					[50.7, 48.1, 45.5, 43.5, 41.5, 39.6, 38.7, 38.1, 37.5, 36.8, 36.8, 36, 34.9, 33.8, 32.7, 31.6, 30.9, 30.6, 30.6, 30.3],
+					[50.5, 47.8, 45.1, 43.2, 41.4, 39.5, 38.8, 38.3, 37.8, 37.3, 36.7, 35.8, 34.9, 34, 33, 32.3, 31.7, 31.2, 30.8, 30.4],
+					[50.2, 47.4, 44.8, 43, 41.2, 39.4, 38.9, 38.9, 38.6, 38.4, 38.1, 37.8, 37.4, 36.7, 36, 35.3, 34.5, 33.7, 32.8, 32.1],
+					[50.1, 47.3, 44.6, 42.9, 41.1, 39.3, 38.9, 38.8, 38.7, 38.6, 38.5, 38.3, 37.9, 37.4, 36.8, 36, 34.9, 33.9, 33, 32.5],
+					[51.1, 48.3, 45.6, 43.6, 41.6, 39.6, 39.2, 39, 39.8, 38.7, 38.7, 38.7, 38.4, 38, 37.6, 36.9, 34.9, 34.1, 33.6, 33.1],
+					[52.1, 49.3, 46.3, 44.3, 42.1, 40, 39.4, 39.1, 38.9, 38.8, 39, 39.2, 39, 38.7, 38.4, 37.8, 36.9, 36.9, 36, 35.2],
+					[53.1, 50.3, 47.4, 45.1, 42.7, 40.3, 39.6, 39.2, 38.9, 38.9, 39.2, 39.6, 39.5, 38.6, 37.9, 37.1, 36.4, 35.9, 35.5, 34.5]
+				]
+				let mem = JSON.parse(JSON.stringify(screen))
+				function changeRender() {
+					let innerHtml = ""
+					for (i = 0; i < 10; i++) {
+						innerHtml += "<div>"
+						for (j = 0; j < 20; j++) {
+							innerHtml +=
+								"<span>" +
+								screen[i][j]
+							" " +
+								"</span>"
+						}
+						innerHtml += "</div>"
+					}
+
+				}
+				changeValue = async index => {
+					if (index < change.length) {
+						await changePoint(
+							change[index].x,
+							change[index].y
+						)
+						changeRender()
+						setTimeout(() => {
+							changeValue(index + 1)
+						}, 1000)
+					}
+				}
+				changePoint = (x, y) => {
+					screen[x][y] = '->'
+				}
+
+
+				fetchh = async () => {
+					change = await axios('http://35.229.217.101:5000/')
+					change = change.data
+					alert("Success")
+
+				}
+
+				func4 = async (index) => {
+					if (index < change.length) {
+						document.getElementById("test").innerHTML = ""
+						g = document.createElement('div');
+						g.setAttribute("id", "map");
+						document.getElementById("test").appendChild(g)
+						await changePoint(
+							change[index].x,
+							change[index].y
+						)
+
+						var show = showDelay();
+						if (show > 0 && show <= 20) {
+							func(screen)
+							timeout = setTimeout(() => {
+								func4(index + 1)
+							}, 1000)
+							console.log("test_1000")
+						}
+						if (show >= 21 && show <= 40) {
+							func(screen)
+							timeout = setTimeout(() => {
+								func4(index + 1)
+							}, 750)
+							console.log("test_750")
+						}
+						if (show >= 41 && show <= 60) {
+							func(screen)
+							timeout = setTimeout(() => {
+								func4(index + 1)
+							}, 500)
+							console.log("test_500")
+						}
+						if (show >= 61 && show <= 80) {
+							func(screen)
+							timeout = setTimeout(() => {
+								func4(index + 1)
+							}, 250)
+							console.log("test_250")
+						}
+						if (show >= 81 && show <= 100) {
+							func(screen)
+							timeout = setTimeout(() => {
+								func4(index + 1)
+							}, 125)
+							console.log("test_125")
+						}
+					}
+				}
+
+				function showDelay() {
+					var delayInput = output2.innerHTML = slider2.value;
+					return delayInput;
+				}
+
+
+				func5 = () => {
+					clearTimeout(timeout)
+					document.getElementById("test").innerHTML = ""
+					g = document.createElement('div');
+					g.setAttribute("id", "map");
+					document.getElementById("test").appendChild(g)
+					func(mem)
+				}
+
+			</script>
+
+
+
+
+			<script src="https://unpkg.com/leaflet@1.3.0/dist/leaflet.js"></script>
+			<script src="leaflet-search.js"></script>
+
+
+			<!--vendor-->
+			<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+
+			<!--leaflet-velocity-->
+			<link rel="stylesheet" href="leaflet-velocity.css" />
+			<script src="leaflet-velocity.js"></script>
+
+			<!--demo-->
+
+
+
+			<script src="algoElevation.js"></script>
+			<script src="algo.js"></script>
+
+
+			<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+
+
+			<!-- <script src="demo2.js"></script> -->
+</body>
+
+</html>
